@@ -2,6 +2,7 @@
 Game Developed for Galway  Game Jam in 2014
 
 Developed by: 
+
 [Roberto Pereira](http://buscatextual.cnpq.br/buscatextual/visualizacv.do?id=K8743998Y2)
 
 [Lucas Maia](http://lattes.cnpq.br/5424065137968754)
