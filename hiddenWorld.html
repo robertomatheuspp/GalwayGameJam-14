@@ -1,0 +1,316 @@
+<html>
+	<head>
+		<title>Galway Game Jam - Hidden Worlds</title>
+		<link rel="stylesheet" href="css/styles.css" type="text/css" media="screen" charset="utf-8">
+		<script src="js/sprite.js" type="text/javascript" charset="utf-8"></script>
+		<script src="js/classes.js" type="text/javascript" charset="utf-8"></script>
+		<script src="js/gameScenes.js" type="text/javascript" charset="utf-8"></script>
+		<script src="js/audios.js" type="text/javascript" charset="utf-8"></script>
+	</head>
+	<body>
+		<script type="text/javascript">
+			var canvas;
+			var ctx;
+			var width;
+			var height;
+
+			var frames = 0;
+			var gameCurrentState;
+			var gameStates = {
+				Menu: 0,
+				Presentation: 1,
+				Game: 2,
+				Won: 3, 
+				Score: 4,
+			};
+
+			var presentationState = 0;
+			var presentationStates = 
+			{
+				video_1: 0,
+				video_2: 1,
+				video_3: 2
+			};
+
+			var keys = {
+				left: 37,
+				right: 39,
+				down: 40,
+				spaceBar: 32, 
+				P: 80, 
+				p: 112, 
+				R: 82, 
+				r: 114, 
+				M: 77, 
+				m: 109
+			}
+			var keyPressed = [];
+
+			var player = new Player();
+			var light = new Light();
+			var fadeOut = new FadeOut();
+			var background = new Background();
+			var gameScenes = new Scenes(ctx);
+			var gameTitle = new GameTitle("The Lost Light", 80);
+			var gameOverTitle = null;
+
+			function musicControl(){
+				if(gameCurrentState==gameStates.Menu){
+					menuMusic.play();
+					gameOverMusic.currentTime = 0;
+					gameOverMusic.pause();
+				}
+				else if(gameCurrentState==gameStates.Game){
+					menuMusic.play();
+					gameOverMusic.currentTime = 0;
+					gameOverMusic.pause();
+				}
+				else if(gameCurrentState==gameStates.Score){
+					gameOverMusic.play();
+					menuMusic.currentTime = 0;
+					menuMusic.pause();
+				}
+				else {
+					menuMusic.currentTime = 0;
+					menuMusic.pause();
+					gameOverMusic.currentTime = 0;
+					gameOverMusic.pause();
+				}
+			}
+
+			function testKey()
+			{
+				if(keyPressed[keys.right]){
+					player.state = player.states.Right;
+					player.move(1);
+				}
+				else if (keyPressed[keys.left]){
+					player.state = player.states.Left;
+					player.move(-1);
+				}
+				else 
+				{
+					player.state = player.states.Center;
+					if(keyPressed[keys.down]){
+						player.move(0);
+					}
+				}
+
+				if(keyPressed[keys.spaceBar])
+				{
+					if (gameCurrentState == gameStates.Menu)
+					{
+						gameCurrentState = gameStates.Presentation;
+					}
+					else if (gameCurrentState == gameStates.Presentation)
+					{
+						var video = document.getElementById('video');
+					
+						if (video.played && video.currentTime > 0.3)
+						{
+
+							video.style.display = 'none';
+							video.pause();
+							document.getElementsByTagName('canvas')[0].style.display = 'block';
+
+							gameCurrentState = gameStates.Game;	
+							presentationState = presentationStates.video_1;
+						}
+					}
+				}
+
+
+				if(gameCurrentState === gameStates.Score){
+
+					if(keyPressed[keys.R] || keyPressed[keys.r]){
+						resetGame(gameStates.Game);
+					}
+
+					if(keyPressed[keys.M] || keyPressed[keys.m]){
+						resetGame(gameStates.Menu);
+					}
+
+				}
+			}
+
+			function run() {
+				var loop = function() {
+					update();
+					render();
+					window.requestAnimationFrame(loop, canvas);
+				}
+				window.requestAnimationFrame(loop, canvas);
+			}
+
+			function update() {
+				frames++;
+				musicControl();
+				testKey();
+
+				if(gameCurrentState == gameStates.Menu)
+				{
+					gameTitle.update();
+					background.update();
+				}
+				else if (gameCurrentState == gameStates.Presentation)
+				{
+					var video = document.getElementById('video');
+					if (video.currentTime < video.duration)
+					{
+						document.getElementsByTagName('canvas')[0].style.display = 'none';
+						video.width = 795;
+						video.height = 550;
+
+						video.style.display = 'block';
+						video.play();	
+					}
+					if (video.ended)
+					{
+						if (presentationState == presentationStates.video_1)
+						{
+							video.src = 'assets/videos/lastPresentation.mp4';
+							presentationState = presentationStates.video_2;
+						}
+						else
+						{
+							gameCurrentState = gameStates.Game;
+							video.pause();
+							video.style.display = 'none';
+							document.getElementsByTagName('canvas')[0].style.display = 'block';
+							presentationState = presentationStates.video_1;
+
+						}
+							
+					}
+				}
+				else if(gameCurrentState == gameStates.Won)
+				{
+					var video = document.getElementById('video2');
+
+					if (video.currentTime < video.duration)
+					{
+						document.getElementsByTagName('canvas')[0].style.display = 'none';
+						video.style.display = 'block';
+						video.play();	
+					}
+					if (video.ended)
+					{
+							resetGame(gameStates.Menu);
+
+							gameCurrentState = gameStates.Menu;
+							video.pause();
+							video.style.display = 'none';
+							document.getElementsByTagName('canvas')[0].style.display = 'block';
+							presentationState = presentationStates.video_1;
+
+					}
+
+				}
+				else if(gameCurrentState == gameStates.Game){
+					background.update();
+					player.update();
+					fadeOut.update();
+					gameScenes.update();
+				}
+				else if(gameCurrentState == gameStates.Score){
+					gameOverTitle.update();
+					background.update();
+					fadeOut.update();
+				}
+			}
+
+			function render() {
+				if(gameCurrentState == gameStates.Menu){
+					background.draw(ctx);
+					fadeOut.draw(ctx);
+					gameTitle.draw(ctx);
+				}
+				else if(gameCurrentState == gameStates.Game){
+					background.draw(ctx);
+					fadeOut.draw(ctx);
+					player.draw(ctx);
+					gameScenes.draw(ctx);
+				}
+				else if(gameCurrentState == gameStates.Score){
+					background.draw(ctx);
+					fadeOut.draw(ctx);
+					gameOverTitle.draw(ctx);
+				}
+			}
+			function wonGame(){
+				gameCurrentState = gameStates.Won;
+			}
+
+			function endGame(winGame){
+				gameCurrentState = gameStates.Score;
+				gameOverTitle = new GameOverTitle(80);
+			}
+
+			function resetGame(state){
+				frames = 0;
+
+				player = new Player();
+				light = new Light();
+				fadeOut = new FadeOut();
+				background = new Background();
+				gameTitle = new GameTitle("The Lost Light", 80);
+				gameScenes = new Scenes(ctx);
+
+				if(state == gameStates.Game){
+					gameCurrentState = gameStates.Game;
+				}
+				else if (state == gameStates.Menu){
+					gameCurrentState = gameStates.Menu;
+				}
+				var video = document.getElementById('video');
+				video.src = 'assets/videos/text_rowllingUp.mp4';
+			}
+
+			function main() {
+
+				canvas = document.createElement("canvas");
+
+				width = 795;
+				height = 550;
+
+				//document.addEventListener("keydown", onKeyPress);
+				window.addEventListener("keydown", function(e){
+					keyPressed[e.keyCode] = true;
+				}, false);
+
+				window.addEventListener("keyup", function(e){
+					delete keyPressed[e.keyCode];
+				}, false);
+
+				gameCurrentState = gameStates.Menu;
+				canvas.style.border = "1px solid #000";
+
+				canvas.width = width;
+				canvas.height = height;
+				if (!(!!canvas.getContext && canvas.getContext("2d"))) {
+					alert("Your browser doesn't support HTML5, please update to latest version");
+				}
+				ctx = canvas.getContext("2d");
+
+				gameCurrentState = gameStates.Menu;
+
+				document.body.appendChild(canvas);
+
+				var imgRunner = new Image();
+				imgRunner.src = "assets/sprite/spriteSheet.png";
+				imgRunner.onload = function(){
+					initSprites(this);
+					loader.init();
+					run();
+				}
+			}
+			main();
+		</script>
+		<video id="video" width='900'>
+		    <source src="assets/videos/text_rowllingUp.mp4" type="video/mp4">
+		</video>
+		<video id="video2" width='900'>
+		    <source src="assets/videos/youWin2.mp4" type="video/mp4">
+		</video>
+	</body>
+</html>
